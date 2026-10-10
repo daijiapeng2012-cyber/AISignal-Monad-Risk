@@ -8,7 +8,7 @@ const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const HEX = /^0x[0-9a-fA-F]+$/;
 async function hash(raw) { return [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw)))].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 export async function upstream(url, payload) {
-  const response=await fetch(url,{method:payload?'POST':'GET',headers:{'Accept':'application/json',...(payload?{'Content-Type':'application/json'}:{})},body:payload?JSON.stringify(payload):undefined,signal:AbortSignal.timeout(12000),redirect:'error'});
+  const response=await fetch(url,{method:payload?'POST':'GET',headers:{'Accept':'application/json',...(payload?{'Content-Type':'application/json'}:{})},body:payload?JSON.stringify(payload):undefined,signal:AbortSignal.timeout(12000),redirect:'manual'});
   if(!response.ok) throw new Error('Public source returned HTTP '+response.status);
   const reader=response.body.getReader(); let chunks=[],size=0;
   while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>4*1024*1024){await reader.cancel();throw new Error('Upstream size limit');}chunks.push(value);}

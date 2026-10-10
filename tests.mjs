@@ -1,5 +1,5 @@
-import {test} from 'node:test';import assert from 'node:assert/strict';
-import {metrics,normalizeCandles,nativeBalance,validateContext,handle} from './worker/index.js';
+import {test,mock} from 'node:test';import assert from 'node:assert/strict';
+import {metrics,normalizeCandles,nativeBalance,validateContext,handle,upstream} from './worker/index.js';
 const start=3600000*1000,rows=n=>Array.from({length:n},(_,i)=>({t:start+i*3600000,o:100,h:100,l:100,c:100}));
 test('flat continuous 24 bars produce zero risk',()=>{const m=metrics(rows(24));assert.equal(m.realized_vol_daily_pct,0);assert.equal(m.max_drawdown_pct,0);assert.equal(m.worst_hour_pct,0);});
 test('independent volatility and drawdown calculation',()=>{const c=rows(25);c.forEach((r,i)=>r.c=i%2?110:100);const m=metrics(c);const x=Math.log(1.1);assert.ok(Math.abs(m.realized_vol_daily_pct-x*Math.sqrt(24*24/23)*100)<1e-10);assert.ok(Math.abs(m.max_drawdown_pct-(100/110-1)*100)<1e-10);});
@@ -12,3 +12,5 @@ test('private files and unknown APIs never exposed',async()=>{for(const path of 
 test('only GET is permitted',async()=>{for(const method of ['POST','PUT','DELETE','PATCH'])assert.equal((await handle(new Request('https://demo.test/api/wallet',{method}))).status,405);});
 test('reject parameter injection and malformed addresses',async()=>{for(const path of ['/api/network?network=__proto__','/api/network?network=mainnet&network=testnet','/api/network?url=https://evil.test','/api/wallet?address=0x123','/api/market?market_id=-1'])assert.equal((await handle(new Request('https://demo.test'+path))).status,400);});
 test('health and document security',async()=>{assert.equal((await handle(new Request('https://demo.test/api/health'))).status,200);const r=await handle(new Request('https://demo.test/'));assert.ok(r.headers.get('Content-Security-Policy').includes("frame-ancestors 'none'"));const html=await r.text();assert.ok(html.includes('Public wallet lens'));assert.ok(html.includes('Export JSON'));assert.ok(!/<(?:iframe|form)[^>]*action=/i.test(html));});
+
+test('Workers-compatible manual redirects are rejected without following',async()=>{const calls=[];const fake=mock.method(globalThis,'fetch',async(url,options)=>{calls.push(url);assert.equal(options.redirect,'manual');return new Response('',{status:302,headers:{Location:'https://untrusted.test'}});});try{await assert.rejects(upstream('https://app.perpl.xyz/api/v1/pub/context'),/HTTP 302/);assert.equal(calls.length,1);}finally{fake.mock.restore();}});
