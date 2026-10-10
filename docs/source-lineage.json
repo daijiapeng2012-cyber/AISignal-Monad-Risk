@@ -1,0 +1,44 @@
+{
+  "source_commit": "dbb7c5ce9c308de464ba1dec9ba172c666a1f283",
+  "source_hashes": {
+    "public_site/index.html": "8d512e3ec1ab555a3790eee02fadee428cd6092a9fdeb237452d3880d85c1011",
+    "public_site/assets/site.css": "62ebca9b9b3ac83b9333017de876219d143cbfed9060eed62cdeabe884b034b7",
+    "public_site/assets/site.js": "856a86bc2db252693d55df10b4479c74edd18dbe9296f54dde4f2eeb4f75e9ad"
+  },
+  "reused_files": [
+    "public_site/assets/site.css"
+  ],
+  "excluded": [
+    "private database",
+    "broker adapters",
+    "account or order records",
+    "PDF reports",
+    "contact image",
+    "credentials",
+    "production strategy source"
+  ],
+  "old_demo_as_of": "2026-08-01",
+  "new_work": "standalone public market risk demo built 2026-10-10",
+  "competition_upgrade": {
+    "date": "2026-10-10",
+    "new": [
+      "worker runtime",
+      "bilingual UI",
+      "wallet public reads",
+      "portfolio local stress",
+      "protocol comparison",
+      "report export",
+      "image-generated icon",
+      "synthesized-narration product videos"
+    ],
+    "private_exclusions": [
+      "credentials",
+      "database",
+      "broker code",
+      "private strategy logic",
+      "account information",
+      "contact images",
+      "old stock sample data"
+    ]
+  }
+}

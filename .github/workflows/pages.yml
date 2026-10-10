@@ -1,0 +1,32 @@
+name: Publish submission videos
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/configure-pages@v5
+      - name: Download verified public submission media
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v2.0.0 --repo "$GITHUB_REPOSITORY" --pattern 'demo.mp4' --pattern 'pitch.mp4' --pattern '*.vtt' --dir media-pages
+          cp docs/logo.png media-pages/logo.png
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: media-pages
+      - uses: actions/deploy-pages@v4
+        id: deployment

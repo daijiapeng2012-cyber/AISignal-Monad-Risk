@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.openai/source-state.json
+.openai/source-workflow-state.json
+.openai/workflow-metrics.jsonl
+.env*
+*.log
+.DS_Store
+
+.gitnexus/
