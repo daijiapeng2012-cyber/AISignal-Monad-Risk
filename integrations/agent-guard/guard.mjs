@@ -3,6 +3,7 @@ import { isAbsolute } from 'node:path';
 
 export const DEFAULT_BASE_URL = 'https://aisignal-monad-risk.daijiapeng2012.chatgpt.site';
 export const MAX_BYTES = 256 * 1024;
+export const CLOCK_SKEW_RESERVATION_MS = 5000;
 const BUDGET_KEYS = ['max_notional_usd', 'max_slippage_bps', 'max_total_cost_usd', 'max_stress_loss_usd'];
 const NETWORKS = ['mainnet', 'testnet'];
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
@@ -91,15 +92,16 @@ export function createGuard(policy, baseURL = DEFAULT_BASE_URL, fetchImpl = fetc
     exactKeys(authentication, ['type', 'value']);
     assert((authentication.type === 'hmac-sha256' && /^[a-f0-9]{64}$/.test(authentication.value)) || (authentication.type === 'unsigned' && authentication.value === null), 'Invalid receipt authentication');
     const evaluated = Date.parse(receipt.evaluated_at), expiry = Date.parse(receipt.result?.expires_at);
-    assert(Number.isFinite(evaluated) && evaluated <= now() && Number.isFinite(expiry) && expiry > evaluated && expiry <= evaluated + 30000, 'Invalid receipt timing');
+    assert(Number.isFinite(evaluated) && evaluated <= now() + CLOCK_SKEW_RESERVATION_MS && Number.isFinite(expiry) && expiry > evaluated && expiry <= evaluated + 30000, 'Invalid receipt timing');
     assert(['pass', 'revise', 'reject'].includes(receipt.result?.decision), 'Invalid receipt decision');
-    return { expired: now() >= expiry, sha256 };
+    // Reserve the entire tolerated clock offset; this never extends signed expiry.
+    return { expired: now() >= expiry - CLOCK_SKEW_RESERVATION_MS, sha256 };
   }
   async function verify(receipt, expectedInput) {
     const local = validateReceipt(receipt, expectedInput);
     const verification = await post('/api/verify-receipt', { receipt });
     // Digest, authenticated origin, deterministic replay and expiry are all mandatory.
-    const valid = local.expired === false && now() < Date.parse(receipt.result.expires_at) && verification.integrityValid === true && verification.signatureValid === true && verification.replayMatches === true && verification.expired === false && verification.authentication === 'hmac-sha256' && verification.current_action_authorized === false;
+    const valid = local.expired === false && now() < Date.parse(receipt.result.expires_at) - CLOCK_SKEW_RESERVATION_MS && verification.integrityValid === true && verification.signatureValid === true && verification.replayMatches === true && verification.expired === false && verification.authentication === 'hmac-sha256' && verification.current_action_authorized === false;
     return { operator_policy_sha256: policySHA256, receipt_sha256: local.sha256, verified: valid, guard_decision: valid ? receipt.result.decision : 'reject', server_verification: verification, receipt, current_action_authorized: false, safety_scope: 'Advisory pre-execution check only. This adapter has no wallet, signing or order capability. Execution code must independently enforce the result and recheck fresh evidence.' };
   }
   return {

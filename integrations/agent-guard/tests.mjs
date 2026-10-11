@@ -72,6 +72,36 @@ test('receipt that expires during verification transit fails closed', async () =
   }, () => current);
   const result = await guard.propose(proposal); assert.equal(result.verified, false); assert.equal(result.guard_decision, 'reject');
 });
+test('signed receipt accepts bounded positive and negative 265ms remote clock offsets', async () => {
+  const clientNow = Date.now(), input = { ...proposal, policy: policy.budgets };
+  for (const offset of [-265, 265, 5000]) {
+    const evaluation = clientNow + offset;
+    const signed = receipt(input, { evaluated_at: new Date(evaluation).toISOString(), result: { decision: 'pass', expires_at: new Date(evaluation + 25000).toISOString() } });
+    const guard = createGuard(policy, undefined, async () => json(verification), () => clientNow);
+    const result = await guard.verify({ receipt: signed }); assert.equal(result.verified, true); assert.equal(result.guard_decision, 'pass');
+    assert.equal(result.receipt.result.expires_at, signed.result.expires_at);
+  }
+});
+test('signed receipt more than 5s ahead is rejected before network without changing TTL', async () => {
+  const clientNow = Date.now(), evaluated = clientNow + 5001, input = { ...proposal, policy: policy.budgets }; let calls = 0;
+  const signed = receipt(input, { evaluated_at: new Date(evaluated).toISOString(), result: { decision: 'pass', expires_at: new Date(evaluated + 25000).toISOString() } });
+  const guard = createGuard(policy, undefined, async () => { calls++; return json(verification); }, () => clientNow);
+  await assert.rejects(guard.verify({ receipt: signed }), /timing/); assert.equal(calls, 0);
+});
+test('5s signed-expiry reservation rejects exact boundary and closer expiry', async () => {
+  const clientNow = Date.now(), input = { ...proposal, policy: policy.budgets };
+  for (const remaining of [4999, 5000, 5001]) {
+    const signed = receipt(input, { evaluated_at: new Date(clientNow - 1000).toISOString(), result: { decision: 'pass', expires_at: new Date(clientNow + remaining).toISOString() } });
+    const guard = createGuard(policy, undefined, async () => json(verification), () => clientNow);
+    const result = await guard.verify({ receipt: signed }); assert.equal(result.verified, remaining > 5000); assert.equal(result.guard_decision, remaining > 5000 ? 'pass' : 'reject');
+  }
+});
+test('verification transit crossing conservative expiry deadline rejects even if server reports fresh', async () => {
+  let clientNow = Date.now(); const evaluated = clientNow, input = { ...proposal, policy: policy.budgets };
+  const signed = receipt(input, { evaluated_at: new Date(evaluated).toISOString(), result: { decision: 'pass', expires_at: new Date(evaluated + 10000).toISOString() } });
+  const guard = createGuard(policy, undefined, async () => { clientNow += 5000; return json(verification); }, () => clientNow);
+  const result = await guard.verify({ receipt: signed }); assert.equal(result.verified, false); assert.equal(result.guard_decision, 'reject');
+});
 test('manual redirects, malformed JSON, HTTP errors and oversized HTTP bodies fail without follow', async () => {
   for (const response of [new Response(null, { status: 302, headers: { location: 'https://evil.invalid/' } }), new Response('{broken', { headers: { 'content-type': 'application/json' } }), new Response('{}', { status: 502, headers: { 'content-type': 'application/json' } }), new Response('x'.repeat(MAX_BYTES + 1), { headers: { 'content-type': 'application/json' } })]) {
     let count = 0; const guard = createGuard(policy, undefined, async (_, options) => { count++; assert.equal(options.redirect, 'manual'); return response; });
