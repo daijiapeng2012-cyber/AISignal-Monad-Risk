@@ -23,7 +23,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download v2.0.0 --repo "$GITHUB_REPOSITORY" --pattern 'demo.mp4' --pattern 'pitch.mp4' --pattern '*.vtt' --dir media-pages
+          gh release download v3.0.0 --repo "$GITHUB_REPOSITORY" --pattern 'demo.mp4' --pattern 'pitch.mp4' --pattern '*.vtt' --dir media-pages
           cp docs/logo.png media-pages/logo.png
       - uses: actions/upload-pages-artifact@v4
         with:

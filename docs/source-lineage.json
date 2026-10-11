@@ -40,5 +40,22 @@
       "contact images",
       "old stock sample data"
     ]
+  },
+  "trade_preflight_upgrade": {
+    "date": "2026-10-10",
+    "baseline_public_commit": "3289c0cb47ab28a8526f9d86819a7a822db1555d",
+    "new": [
+      "live Perpl L2 depth and ticker validation",
+      "exact native-lot and rational policy arithmetic",
+      "deterministic trade-intent preflight and smaller size search",
+      "strict JSON agent API",
+      "optional server-authenticated HMAC frozen receipts",
+      "independent deterministic replay and expiry checks",
+      "operator-policy stdio MCP adapter",
+      "responsive bilingual trade-first interface"
+    ],
+    "product_ai_inference": false,
+    "actual_order_submission": false,
+    "private_application_published": false
   }
 }

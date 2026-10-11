@@ -6,10 +6,10 @@
     "build": "bash scripts/build.sh",
     "validate": "node scripts/validate-artifact.mjs",
     "start": "node local-server.mjs",
-    "test": "node --test tests.mjs tests-client.mjs"
+    "test": "node --test tests.mjs tests-client.mjs tests-preflight.mjs tests-preflight-ui.mjs integrations/agent-guard/tests.mjs"
   },
-  "version": "2.0.0",
-  "description": "Public-data risk workspace for Monad and Perpl",
+  "version": "3.0.0",
+  "description": "Trade-intent preflight and autonomous-agent risk guard for Monad and Perpl",
   "license": "MIT",
   "engines": {
     "node": ">=22"
